@@ -7,16 +7,6 @@ Interfaz gráfica (Tkinter + ttk) para cifrado y descifrado clásico (mod 26).
 Incluye César y Afin, además de utilidades de aritmética modular.
 
 Ejecuta: python cesar_modular.py
-
-Características:
-- Entrada de texto manual y lectura desde archivo
-- Selector de algoritmo: César / Afin
-- Claves con controles dinámicos (slider/entry para K y b, combobox para a)
-- Botones Cifrar / Descifrar / Copiar / Guardar / Limpiar / Intercambiar
-- Menú: Abrir, Guardar, Sugerir K (César), Calculadora modular, Acerca de
-- Vista de resultado (solo lectura)
-- Panel de fuerza bruta (26 claves para César o 26 para b con a fijo en Afin)
-- Conserva mayúsculas/minúsculas y no altera caracteres no alfabéticos
 """
 
 import tkinter as tk
@@ -68,7 +58,6 @@ def num_to_char(n: int, is_upper: bool = True) -> str:
 # -----------------------
 # Cifrado César
 # -----------------------
-
 def caesar_encrypt(plaintext: str, k: int) -> str:
     out = []
     k = k % 26
@@ -94,9 +83,7 @@ def caesar_decrypt(ciphertext: str, k: int) -> str:
     return ''.join(out)
 
 # -----------------------
-# Cifrado Afin (a debe ser coprimo con 26)
-# E(x) = (a*x + b) mod 26
-# D(x) = a^{-1} * (x - b) mod 26
+# Cifrado Afin
 # -----------------------
 VALID_A_VALUES = [1, 3, 5, 7, 9, 11, 15, 17, 19, 21, 23, 25]
 
@@ -132,14 +119,12 @@ def affine_decrypt(ciphertext: str, a: int, b: int) -> str:
     return ''.join(out)
 
 def all_shifts(text: str) -> List[str]:
-    """Devuelve lista de (k, resultado) para k=0..25 usando cifrado (aplicable para análisis por fuerza bruta)."""
     results = []
     for k in range(26):
-        results.append(f"{k:2d}: {caesar_decrypt(text, k)}")  # Mostrar como descifrado con k
+        results.append(f"{k:2d}: {caesar_decrypt(text, k)}")
     return results
 
 def all_affine_b_shifts_for_a(text: str, a: int) -> List[str]:
-    """Devuelve lista para Afin variando b=0..25 con 'a' fijo (descifrado)."""
     if a not in VALID_A_VALUES:
         return [f"b={b:2d}: [a inválido]" for b in range(26)]
     results = []
@@ -185,7 +170,7 @@ class CaesarGUI(ttk.Frame):
 
         # Layout
         self._create_menubar()
-        self._create_widgets()
+        self._create_widgets()   # _create_widgets will create brute_label BEFORE calling _show_key_frame
         self._bind_events()
         self._update_force_brute()
 
@@ -198,16 +183,27 @@ class CaesarGUI(ttk.Frame):
         ttk.Label(self, text="Texto (ingresa aquí):").grid(row=1, column=0, sticky="w")
         self.input_text = tk.Text(self, height=6, wrap='word')
         self.input_text.grid(row=2, column=0, columnspan=3, sticky="nsew")
-        self.input_text.insert('1.0', "")  # vacío por defecto
+        self.input_text.insert('1.0', "")
 
         # Algorithm selector
         ttk.Label(self, text="Algoritmo:").grid(row=3, column=0, sticky="w", pady=(8,0))
         self.alg_combo = ttk.Combobox(self, state="readonly", values=["César", "Afin"], textvariable=self.algorithm_var, width=12)
+        try:
+            self.alg_combo.current(0)  # "César"
+        except Exception:
+            self.alg_combo.set(self.algorithm_var.get())
         self.alg_combo.grid(row=3, column=1, sticky="w")
 
         # Key controls container
         self.key_container = ttk.Frame(self)
         self.key_container.grid(row=4, column=0, columnspan=3, sticky="ew")
+
+        # Brute-force label & list MUST be created BEFORE calling _show_key_frame
+        self.brute_label = ttk.Label(self, text="Fuerza bruta (todas las claves):")
+        self.brute_label.grid(row=1, column=3, sticky="w", padx=(12,0))
+        self.brutelist = tk.Listbox(self, width=40, height=20)
+        self.brutelist.grid(row=2, column=3, rowspan=6, sticky="nsew", padx=(12,0))
+        self.brutelist.bind('<<ListboxSelect>>', self.on_brute_select)
 
         # Caesar key frame
         self.caesar_keys_frame = ttk.Frame(self.key_container)
@@ -223,7 +219,10 @@ class CaesarGUI(ttk.Frame):
         self.affine_keys_frame = ttk.Frame(self.key_container)
         ttk.Label(self.affine_keys_frame, text="Clave afin a (coprimo con 26):").grid(row=0, column=0, sticky="w")
         self.a_combo = ttk.Combobox(self.affine_keys_frame, state="readonly", values=[str(v) for v in VALID_A_VALUES], width=6)
-        self.a_combo.set(str(self.a_var.get()))
+        try:
+            self.a_combo.current(VALID_A_VALUES.index(self.a_var.get()))
+        except Exception:
+            self.a_combo.set(str(self.a_var.get()))
         self.a_combo.grid(row=0, column=1, sticky="w", padx=(4,8))
         ttk.Label(self.affine_keys_frame, text="b:").grid(row=0, column=2, sticky="w", padx=(12,0))
         self.b_scale = ttk.Scale(self.affine_keys_frame, from_=0, to=25, orient='horizontal', command=self._on_b_scale_change)
@@ -257,13 +256,8 @@ class CaesarGUI(ttk.Frame):
         self.output_text = tk.Text(self, height=6, wrap='word', state='normal')
         self.output_text.grid(row=7, column=0, columnspan=3, sticky="nsew")
         self.output_text.insert('1.0', "")
-
-        # Brute-force list
-        self.brute_label = ttk.Label(self, text="Fuerza bruta (todas las claves):")
-        self.brute_label.grid(row=1, column=3, sticky="w", padx=(12,0))
-        self.brutelist = tk.Listbox(self, width=40, height=20)
-        self.brutelist.grid(row=2, column=3, rowspan=6, sticky="nsew", padx=(12,0))
-        self.brutelist.bind('<<ListboxSelect>>', self.on_brute_select)
+        # Configurar como solo lectura por defecto
+        self.output_text.config(state='disabled')
 
         # Configure grid weights
         self.columnconfigure(0, weight=1)
@@ -311,7 +305,6 @@ class CaesarGUI(ttk.Frame):
         self.key_var.set(ival)
         # actualizar entry (sin disparar bucle infinito)
         self.key_text_var.set(str(ival))
-        # No actualiza fuerza bruta porque lista ya cubre todos los k
 
     def _on_key_entry_change(self):
         s = self.key_text_var.get()
@@ -331,7 +324,6 @@ class CaesarGUI(ttk.Frame):
         ival = ival % 26
         self.b_var.set(ival)
         self.b_text_var.set(str(ival))
-        # No es necesario recalcular fuerza bruta (depende solo de a)
 
     def _on_b_entry_change(self):
         s = self.b_text_var.get()
@@ -352,7 +344,6 @@ class CaesarGUI(ttk.Frame):
         self._update_force_brute()
 
     def _on_input_modified(self, event=None):
-        # Tkinter sets a "modified" flag; debemos resetearlo
         try:
             if self.input_text.edit_modified():
                 self.input_text.edit_modified(False)
@@ -507,7 +498,6 @@ class CaesarGUI(ttk.Frame):
         if not sel:
             return
         text = self.brutelist.get(sel[0])
-        # text tiene "k: resultado" -> mostrar resultado en output
         parts = text.split(":", 1)
         if len(parts) == 2:
             resultado = parts[1].lstrip()
@@ -525,17 +515,15 @@ class CaesarGUI(ttk.Frame):
         if not letters:
             messagebox.showinfo("Sugerencia", "No hay letras para analizar.")
             return
-        # Conteo simple y suposición de letra 'E' (4) como más frecuente
         from collections import Counter
         cnt = Counter(letters)
         most_common_letter, _ = cnt.most_common(1)[0]
         cipher_idx = ord(most_common_letter) - ord('A')
-        candidates_plain = ['E', 'A', 'O']  # suposiciones comunes en ES
+        candidates_plain = ['E', 'A', 'O']
         suggestions = []
         for plain in candidates_plain:
             k = (cipher_idx - (ord(plain) - ord('A'))) % 26
             suggestions.append((plain, k))
-        # Mostrar
         msg_lines = [f"Letra más frecuente: {most_common_letter}"]
         for plain, k in suggestions:
             msg_lines.append(f"Si representa '{plain}', K ≈ {k}")
@@ -632,8 +620,11 @@ class CaesarGUI(ttk.Frame):
 
 # Ejecutar la app
 def main():
-    root = tk.Tk()
-    # Tamaño y aspecto inicial
+    try:
+        root = tk.Tk()
+    except Exception as e:
+        print(f"Error al crear la ventana Tkinter: {e}")
+        return
     root.geometry("1050x560")
     app = CaesarGUI(root)
     root.mainloop()
