@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cifrador Clásico — César / Afin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="app-header">
+      <div class="brand">
+        <div class="logo">🔐</div>
+        <div class="title">
+          <h1>Cifrador clásico</h1>
+          <p>César / Afin — mod 26</p>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="darkToggle" class="icon-btn" title="Alternar tema">🌙</button>
+        <a class="icon-btn" href="#" id="openModCalc" title="Calculadora modular">∑</a>
+        <a class="icon-btn" href="#" id="aboutBtn" title="Acerca de">ⓘ</a>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="card input-card glass">
+        <div class="section-header">
+          <h2>Entrada</h2>
+          <div class="file-actions">
+            <label for="fileInput" class="link">Abrir archivo</label>
+            <input id="fileInput" type="file" accept=".txt" hidden />
+          </div>
+        </div>
+        <textarea id="inputText" rows="6" placeholder="Escribe o pega tu texto aquí…"></textarea>
+
+        <div class="controls">
+          <div class="field">
+            <label>Algoritmo</label>
+            <select id="algorithm">
+              <option value="caesar">César</option>
+              <option value="affine">Afin</option>
+            </select>
+          </div>
+
+          <div id="caesarKeys" class="key-group">
+            <div class="field">
+              <label>K</label>
+              <input id="kRange" type="range" min="0" max="25" value="3" />
+              <div class="inline">
+                <input id="kInput" type="number" min="0" max="25" value="3" />
+                <span class="hint">0–25</span>
+                <button id="suggestK" class="btn ghost" title="Sugerir K por frecuencia">Sugerir K</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="affineKeys" class="key-group" hidden>
+            <div class="field">
+              <label>a (coprimo con 26)</label>
+              <select id="aSelect"></select>
+            </div>
+            <div class="field">
+              <label>b</label>
+              <input id="bRange" type="range" min="0" max="25" value="8" />
+              <div class="inline">
+                <input id="bInput" type="number" min="0" max="25" value="8" />
+                <span class="hint">0–25</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="buttons">
+          <button id="encryptBtn" class="btn primary">Cifrar ▶</button>
+          <button id="decryptBtn" class="btn">◀ Descifrar</button>
+          <button id="swapBtn" class="btn ghost">Intercambiar ↔</button>
+        </div>
+      </section>
+
+      <section class="card output-card glass">
+        <div class="section-header">
+          <h2>Resultado</h2>
+          <div class="file-actions">
+            <button id="copyBtn" class="link">Copiar</button>
+            <button id="saveBtn" class="link">Guardar</button>
+          </div>
+        </div>
+        <textarea id="outputText" rows="6" readonly placeholder="Aquí verás el resultado…"></textarea>
+      </section>
+
+      <aside class="card brute-card glass">
+        <div class="section-header">
+          <h2 id="bruteTitle">Fuerza bruta (todas las K)</h2>
+        </div>
+        <div class="brute-list" id="bruteList"></div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- Modal: Calculadora modular -->
+  <div class="modal" id="modCalcModal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-content glass">
+      <div class="modal-header">
+        <h3>Calculadora modular</h3>
+        <button class="icon-btn" data-close>✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="grid2">
+          <div class="field">
+            <label>Módulo m</label>
+            <input id="mInput" type="number" value="26" />
+          </div>
+          <div class="field">
+            <label>Operación</label>
+            <select id="opSelect">
+              <option>a + b (mod m)</option>
+              <option>a - b (mod m)</option>
+              <option>a * b (mod m)</option>
+              <option>a^b (mod m)</option>
+              <option>inv(a) (mod m)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>a</label>
+            <input id="maInput" type="number" value="5" />
+          </div>
+          <div class="field">
+            <label>b</label>
+            <input id="mbInput" type="number" value="8" />
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button id="calcBtn" class="btn primary">Calcular</button>
+          <output id="calcResult" class="result"></output>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Acerca de -->
+  <div class="modal" id="aboutModal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-content glass">
+      <div class="modal-header">
+        <h3>Acerca de</h3>
+        <button class="icon-btn" data-close>✕</button>
+      </div>
+      <div class="modal-body">
+        <p>
+          Cifrador clásico (César / Afin). Implementación educativa con aritmética modular.
+          Incluye análisis por fuerza bruta, sugerencia de clave para César y calculadora modular.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
